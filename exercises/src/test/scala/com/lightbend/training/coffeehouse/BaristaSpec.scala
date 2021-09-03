@@ -43,6 +43,7 @@ class BaristaSpec extends BaseAkkaSpec {
     }
   }
 
+  // *** flow ***
   "Barista.flow" should {
     "result in sending a CoffeePrepared response after prepareCoffeeDuration" in {
       val ref = TestProbe().ref

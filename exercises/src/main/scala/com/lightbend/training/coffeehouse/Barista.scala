@@ -54,7 +54,7 @@ object Barista {
         .to(Sink.foreach { case (waiter, coffeePrepared) => waiter ! coffeePrepared })
         .run()
 
-      override def receive: Receive = { case msg => ref ! (sender(), msg) }
+      def receive: Receive = { case msg => ref ! (sender(), msg) }
     }))
 
 }
@@ -66,7 +66,7 @@ class Barista(prepareCoffeeDuration: FiniteDuration, accuracy: Int)
 
   import Barista._
 
-  override def receive: Receive =
+  def receive: Receive =
     ready
 
   private def ready: Receive = { case PrepareCoffee(coffee, guest) =>
