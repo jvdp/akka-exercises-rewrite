@@ -54,7 +54,7 @@ object Barista {
         .to(Sink.foreach { case (waiter, coffeePrepared) => waiter ! coffeePrepared })
         .run()
 
-      def receive: Receive = { case msg => ref ! (sender(), msg) }
+      def receive: Receive = { msg => ref ! (sender(), msg) }
     }))
 
 }

@@ -38,7 +38,6 @@ object Guest {
       caffeineLimit: Int
   ): Flow[Coffee, Response, NotUsed] =
     Flow[Coffee]
-      .log("guest-flow-request")
       .scan((0, Option.empty[Response])) {
         case ((coffeeCount, _), `favoriteCoffee`) =>
           coffeeCount + 1 -> Some(Right(Waiter.ServeCoffee(favoriteCoffee)))
@@ -49,7 +48,6 @@ object Guest {
         case (coffeeCount, _) if coffeeCount >= caffeineLimit => throw CaffeineException
         case (_, Some(response))                              => response
       }
-      .via(LogInfo("guest-flow-response"))
       .flatMapConcat {
         case response @ Left(_)  => Source.single(response)
         case response @ Right(_) => Source.single(response).delay(finishCoffeeDuration)
