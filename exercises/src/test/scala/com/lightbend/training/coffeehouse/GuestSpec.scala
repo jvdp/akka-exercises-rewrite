@@ -5,9 +5,11 @@ package com.lightbend.training.coffeehouse
 
 import akka.testkit.{EventFilter, TestProbe}
 import scala.concurrent.duration.DurationInt
+import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.Sink
 
 class GuestSpec extends BaseAkkaSpec {
-
+  // *** actor ***
   "Sending CoffeeServed to Guest" should {
     "result in increasing the coffeeCount and log a status message at info" in {
       val guest = system.actorOf(
@@ -23,7 +25,7 @@ class GuestSpec extends BaseAkkaSpec {
     }
     "result in sending ServeCoffee to Waiter after finishCoffeeDuration" in {
       val waiter = TestProbe()
-      val guest = createGuest(waiter)
+      val guest = createFlowGuest(waiter)
       waiter.within(50 milliseconds, 200 milliseconds) {
         // The timer is not extremely accurate, relax the timing constraints.
         guest ! Waiter.CoffeeServed(Coffee.Akkaccino)
@@ -32,7 +34,7 @@ class GuestSpec extends BaseAkkaSpec {
     }
     "result in sending Complaint to Waiter for a wrong coffee" in {
       val waiter = TestProbe()
-      val guest = createGuest(waiter)
+      val guest = createFlowGuest(waiter)
       guest ! Waiter.CoffeeServed(Coffee.MochaPlay)
       waiter.expectMsg(Waiter.Complaint(Coffee.Akkaccino))
     }
@@ -46,7 +48,8 @@ class GuestSpec extends BaseAkkaSpec {
       waiter.expectMsg(Waiter.ServeCoffee(Coffee.Akkaccino))
     }
     "result in a CaffeineException if caffeineLimit exceeded" in {
-      val guest = system.actorOf(Guest.props(system.deadLetters, Coffee.Akkaccino, 100 millis, -1))
+      val guest =
+        system.actorOf(Guest.props(system.deadLetters, Coffee.Akkaccino, 100 millis, -1))
       EventFilter[Guest.CaffeineException.type](occurrences = 1) intercept {
         guest ! Guest.CoffeeFinished
       }
@@ -60,5 +63,59 @@ class GuestSpec extends BaseAkkaSpec {
       Waiter.ServeCoffee(Coffee.Akkaccino)
     ) // Creating Guest immediately sends Waiter.ServeCoffee
     guest
+  }
+
+  def createFlowGuest(waiter: TestProbe) = {
+    val guest =
+      Guest.flowActor(
+        waiter.ref,
+        Guest.flow(Coffee.Akkaccino, 100 milliseconds, Int.MaxValue)
+      )
+    waiter.expectMsg(
+      Waiter.ServeCoffee(Coffee.Akkaccino)
+    ) // Creating Guest immediately sends Waiter.ServeCoffee
+    guest
+  }
+
+  // *** flow ***
+  "Guest.flow" should {
+    "result in sending ServeCoffee immediately" in {
+      Source.empty
+        .via(Guest.flow(Coffee.Akkaccino, 100 milliseconds, 2))
+        .runWith(Sink.seq)
+        .futureValue shouldEqual
+        Seq(Right(Waiter.ServeCoffee(Coffee.Akkaccino)))
+    }
+
+    "result in sending ServeCoffee to Waiter after finishCoffeeDuration" in {
+      Source(Seq(Coffee.Akkaccino))
+        .via(Guest.flow(Coffee.Akkaccino, 100 milliseconds, 2))
+        .runWith(Sink.seq)
+        .futureValue shouldEqual
+        Seq(
+          Right(Waiter.ServeCoffee(Coffee.Akkaccino)),
+          Right(Waiter.ServeCoffee(Coffee.Akkaccino))
+        )
+    }
+
+    "result in sending Complaint to Waiter for a wrong coffee" in {
+      Source(Seq(Coffee.MochaPlay))
+        .via(Guest.flow(Coffee.Akkaccino, 100 milliseconds, 2))
+        .runWith(Sink.seq)
+        .futureValue shouldEqual
+        Seq(
+          Right(Waiter.ServeCoffee(Coffee.Akkaccino)),
+          Left(Waiter.Complaint(Coffee.Akkaccino))
+        )
+    }
+
+    "result in a CaffeineException if caffeineLimit exceeded" in {
+      Source(Seq(Coffee.Akkaccino, Coffee.Akkaccino))
+        .via(Guest.flow(Coffee.Akkaccino, 100 milliseconds, 2))
+        .runWith(Sink.seq)
+        .failed
+        .futureValue shouldEqual
+        Guest.CaffeineException
+    }
   }
 }

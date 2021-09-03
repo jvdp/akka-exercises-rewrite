@@ -9,8 +9,9 @@ import org.scalatest.BeforeAndAfterAll
 
 import scala.concurrent.Await
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import org.scalatest.concurrent.ScalaFutures
 
-abstract class BaseAkkaSpec extends BaseSpec with BeforeAndAfterAll {
+abstract class BaseAkkaSpec extends BaseSpec with BeforeAndAfterAll with ScalaFutures {
 
   implicit class TestProbeOps(probe: TestProbe) {
 
