@@ -3,15 +3,7 @@
 
 package com.lightbend.training.coffeehouse
 
-import akka.actor.{
-  Actor,
-  ActorLogging,
-  ActorRef,
-  OneForOneStrategy,
-  Props,
-  SupervisorStrategy,
-  Terminated
-}
+import akka.actor.{Actor, ActorLogging, ActorRef, OneForOneStrategy, Props, SupervisorStrategy, Terminated}
 import akka.routing.FromConfig
 import scala.concurrent.duration.{Duration, MILLISECONDS => Millis}
 

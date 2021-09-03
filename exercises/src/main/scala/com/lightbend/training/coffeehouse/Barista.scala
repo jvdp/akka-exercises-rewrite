@@ -59,10 +59,7 @@ object Barista {
 
 }
 
-class Barista(prepareCoffeeDuration: FiniteDuration, accuracy: Int)
-    extends Actor
-    with Stash
-    with Timers {
+class Barista(prepareCoffeeDuration: FiniteDuration, accuracy: Int) extends Actor with Stash with Timers {
 
   import Barista._
 

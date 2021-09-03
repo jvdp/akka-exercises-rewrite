@@ -32,13 +32,12 @@ trait Terminal {
       }
 
     def createGuest: Parser[Command.Guest] =
-      opt(int) ~ ("guest|g".r ~> opt(coffee) ~ opt(int)) ^^ {
-        case count ~ (coffee ~ caffeineLimit) =>
-          Command.Guest(
-            count getOrElse 1,
-            coffee getOrElse Coffee.Akkaccino,
-            caffeineLimit getOrElse Int.MaxValue
-          )
+      opt(int) ~ ("guest|g".r ~> opt(coffee) ~ opt(int)) ^^ { case count ~ (coffee ~ caffeineLimit) =>
+        Command.Guest(
+          count getOrElse 1,
+          coffee getOrElse Coffee.Akkaccino,
+          caffeineLimit getOrElse Int.MaxValue
+        )
       }
 
     def getStatus: Parser[Command.Status.type] =
