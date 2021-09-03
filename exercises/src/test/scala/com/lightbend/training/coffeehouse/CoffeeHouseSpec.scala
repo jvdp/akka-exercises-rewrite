@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training.coffeehouse
 
@@ -35,7 +34,11 @@ class CoffeeHouseSpec extends BaseAkkaSpec {
     }
     "result in logging status guest added to guest book" in {
       val coffeeHouse = system.actorOf(CoffeeHouse.props(Int.MaxValue), "add-to-guest-book")
-      EventFilter.info(source = coffeeHouse.path.toString, pattern = ".*added to guest book.*", occurrences = 1) intercept {
+      EventFilter.info(
+        source = coffeeHouse.path.toString,
+        pattern = ".*added to guest book.*",
+        occurrences = 1
+      ) intercept {
         coffeeHouse ! CoffeeHouse.CreateGuest(Coffee.Akkaccino, Int.MaxValue)
       }
     }
@@ -45,9 +48,12 @@ class CoffeeHouseSpec extends BaseAkkaSpec {
     "result in forwarding PrepareCoffee to Barista if caffeineLimit not yet reached" in {
       val barista = TestProbe()
       val coffeeHouse =
-        TestActorRef(new CoffeeHouse(Int.MaxValue) {
-          override def createBarista() = barista.ref
-        }, "prepare-coffee")
+        TestActorRef(
+          new CoffeeHouse(Int.MaxValue) {
+            override def createBarista() = barista.ref
+          },
+          "prepare-coffee"
+        )
       coffeeHouse ! CoffeeHouse.CreateGuest(Coffee.Akkaccino, Int.MaxValue)
       val guest = TestProbe().expectActor("/user/prepare-coffee/$*")
       coffeeHouse ! CoffeeHouse.ApproveCoffee(Coffee.Akkaccino, guest)
@@ -57,25 +63,38 @@ class CoffeeHouseSpec extends BaseAkkaSpec {
       val dummyGuest = TestProbe().ref // Just there to get an ActorRef...
       val dummyWaiter = TestProbe()
       val coffeeHouse = TestActorRef(new CoffeeHouse(Int.MaxValue) {
-         override def createBarista(): ActorRef = context.actorOf(Barista.props(0.seconds, 100), "barista")
+        override def createBarista(): ActorRef =
+          context.actorOf(Barista.props(0.seconds, 100), "barista")
       })
-      coffeeHouse.tell(CoffeeHouse.ApproveCoffee(Coffee.Akkaccino, dummyGuest),dummyWaiter.ref)
+      coffeeHouse.tell(CoffeeHouse.ApproveCoffee(Coffee.Akkaccino, dummyGuest), dummyWaiter.ref)
       dummyWaiter.expectMsg(Barista.CoffeePrepared(Coffee.Akkaccino, dummyGuest))
     }
     "result in logging status guest caffeine count incremented" in {
       val dummyGuest = TestProbe()
-      val coffeeHouse = system.actorOf(Props(new CoffeeHouse(Int.MaxValue) {
-        override protected def createGuest(favoriteCoffee: Coffee, caffeineLimit: Int): ActorRef = dummyGuest.ref
-      }), "caffeine-count-incremented-guest-book")
+      val coffeeHouse = system.actorOf(
+        Props(new CoffeeHouse(Int.MaxValue) {
+          override protected def createGuest(favoriteCoffee: Coffee, caffeineLimit: Int): ActorRef =
+            dummyGuest.ref
+        }),
+        "caffeine-count-incremented-guest-book"
+      )
 
-      EventFilter.info(source = coffeeHouse.path.toString, pattern = ".*caffeine count incremented.*", occurrences = 1) intercept {
+      EventFilter.info(
+        source = coffeeHouse.path.toString,
+        pattern = ".*caffeine count incremented.*",
+        occurrences = 1
+      ) intercept {
         coffeeHouse ! CoffeeHouse.CreateGuest(Coffee.Akkaccino, Int.MaxValue)
         coffeeHouse ! CoffeeHouse.ApproveCoffee(Coffee.Akkaccino, dummyGuest.ref)
       }
     }
     "result in logging a status message at info if caffeineLimit reached" in {
       val coffeeHouse = system.actorOf(CoffeeHouse.props(0), "caffeine-limit")
-      EventFilter.info(source = coffeeHouse.path.toString, pattern = ".*[Ss]orry.*", occurrences = 1) intercept {
+      EventFilter.info(
+        source = coffeeHouse.path.toString,
+        pattern = ".*[Ss]orry.*",
+        occurrences = 1
+      ) intercept {
         val guest = TestProbe().ref
         coffeeHouse ! CoffeeHouse.ApproveCoffee(Coffee.Akkaccino, guest)
       }
@@ -93,7 +112,11 @@ class CoffeeHouseSpec extends BaseAkkaSpec {
   "On termination of Guest, CoffeeHouse" should {
     "result in logging a thanks message at info" in {
       val coffeeHouse = system.actorOf(CoffeeHouse.props(1), "thanks-coffee-house")
-      EventFilter.info(source = coffeeHouse.path.toString, pattern = ".*for being our guest.*", occurrences = 1) intercept {
+      EventFilter.info(
+        source = coffeeHouse.path.toString,
+        pattern = ".*for being our guest.*",
+        occurrences = 1
+      ) intercept {
         coffeeHouse ! CoffeeHouse.CreateGuest(Coffee.Akkaccino, Int.MaxValue)
         val guest = TestProbe().expectActor("/user/thanks-coffee-house/$*")
         coffeeHouse ! CoffeeHouse.ApproveCoffee(Coffee.Akkaccino, guest)
@@ -116,14 +139,20 @@ class CoffeeHouseSpec extends BaseAkkaSpec {
   "On failure of Waiter CoffeeHouse" should {
     "restart it and resend PrepareCoffee to Barista" in {
       val barista = TestProbe()
-      TestActorRef(new CoffeeHouse(Int.MaxValue) {
-        override def createBarista() = barista.ref
-        override def createWaiter() = context.actorOf(Props(new Actor {
-          override def receive = {
-            case _ => throw Waiter.FrustratedException(Coffee.Akkaccino, system.deadLetters)
-          }
-        }), "waiter")
-      }, "resend-prepare-coffee")
+      TestActorRef(
+        new CoffeeHouse(Int.MaxValue) {
+          override def createBarista() = barista.ref
+          override def createWaiter() = context.actorOf(
+            Props(new Actor {
+              override def receive = { case _ =>
+                throw Waiter.FrustratedException(Coffee.Akkaccino, system.deadLetters)
+              }
+            }),
+            "waiter"
+          )
+        },
+        "resend-prepare-coffee"
+      )
       val waiter = TestProbe().expectActor("/user/resend-prepare-coffee/waiter")
       waiter ! "blow-up"
       barista.expectMsg(Barista.PrepareCoffee(Coffee.Akkaccino, system.deadLetters))

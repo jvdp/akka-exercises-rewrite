@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 import sbt.Keys._
 import sbt._
@@ -23,7 +22,10 @@ object Man extends AutoPlugin {
 
   private val manHelp = Help(
     "man",
-    ("man <e>", "Displays the README.md file. Use <noarg> for setup README.md or <e> for exercise README.md"),
+    (
+      "man <e>",
+      "Displays the README.md file. Use <noarg> for setup README.md or <e> for exercise README.md"
+    ),
     "Displays the README.md file. Use <noarg> for setup README.md or <e> for exercise README.md"
   )
 
@@ -66,7 +68,8 @@ object Man extends AutoPlugin {
         Console.println(formatLine(coloredLine))
 
       case line if !inCodeBlock && line.matches(numberRx.toString() + ".*") =>
-        val coloredLine = numberRx.replaceAllIn(line, _ match { case numberRx(n, s) => f"$red$n$s$reset" })
+        val coloredLine =
+          numberRx.replaceAllIn(line, _ match { case numberRx(n, s) => f"$red$n$s$reset" })
         Console.println(formatLine(coloredLine))
 
       case line if line.matches(startCodeBlockRx.toString()) =>
@@ -83,14 +86,19 @@ object Man extends AutoPlugin {
   }
 
   private def formatLine(line: String) = {
-    rxFormat(rxFormat(rxFormat(line, codeRx, green), boldRx, yellow), urlRx, magenta, keepWrapper = true)
+    rxFormat(
+      rxFormat(rxFormat(line, codeRx, green), boldRx, yellow),
+      urlRx,
+      magenta,
+      keepWrapper = true
+    )
   }
 
   private def rxFormat(
-    line: String,
-    regex: Regex,
-    startColor: String,
-    keepWrapper: Boolean = false
+      line: String,
+      regex: Regex,
+      startColor: String,
+      keepWrapper: Boolean = false
   ): String = {
     line match {
       case `line` if line.matches(".*" + regex.toString + ".*") =>

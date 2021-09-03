@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training.coffeehouse
 
@@ -44,7 +43,9 @@ class CoffeeHouseAppSpec extends BaseAkkaSpec {
         createGuest(2, Coffee.Akkaccino, Int.MaxValue)
         override def createCoffeeHouse() = probe.ref
       }
-      probe.receiveN(2) shouldEqual List.fill(2)(CoffeeHouse.CreateGuest(Coffee.Akkaccino, Int.MaxValue))
+      probe.receiveN(2) shouldEqual List.fill(2)(
+        CoffeeHouse.CreateGuest(Coffee.Akkaccino, Int.MaxValue)
+      )
     }
   }
 
@@ -59,8 +60,8 @@ class CoffeeHouseAppSpec extends BaseAkkaSpec {
       new CoffeeHouseApp(system) {
         EventFilter.info(pattern = ".*42.*") intercept status()
         override def createCoffeeHouse() = system.actorOf(Props(new Actor {
-          override def receive = {
-            case CoffeeHouse.GetStatus => sender() ! CoffeeHouse.Status(42)
+          override def receive = { case CoffeeHouse.GetStatus =>
+            sender() ! CoffeeHouse.Status(42)
           }
         }))
       }

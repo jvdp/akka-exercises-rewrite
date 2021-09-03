@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training.coffeehouse
 

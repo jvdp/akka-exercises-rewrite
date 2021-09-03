@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training.coffeehouse
 
@@ -18,17 +17,23 @@ object Barista {
     Props(new Barista(prepareCoffeeDuration, accuracy))
 }
 
-class Barista(prepareCoffeeDuration: FiniteDuration, accuracy: Int) extends Actor with Stash with Timers {
+class Barista(prepareCoffeeDuration: FiniteDuration, accuracy: Int)
+    extends Actor
+    with Stash
+    with Timers {
 
   import Barista._
 
   override def receive: Receive =
     ready
 
-  private def ready: Receive = {
-    case PrepareCoffee(coffee, guest) =>
-      timers.startSingleTimer("coffee-prepared", CoffeePrepared(pickCoffee(coffee), guest), prepareCoffeeDuration)
-      context.become(busy(sender()))
+  private def ready: Receive = { case PrepareCoffee(coffee, guest) =>
+    timers.startSingleTimer(
+      "coffee-prepared",
+      CoffeePrepared(pickCoffee(coffee), guest),
+      prepareCoffeeDuration
+    )
+    context.become(busy(sender()))
   }
 
   private def busy(waiter: ActorRef): Receive = {

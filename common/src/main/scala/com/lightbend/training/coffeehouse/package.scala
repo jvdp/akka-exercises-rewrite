@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training
 
@@ -12,15 +11,13 @@ package object coffeehouse {
 
   type IndexedSeq[+A] = scala.collection.immutable.IndexedSeq[A]
 
-  /**
-   * Keeps the CPU busy for the given appoximate duration.
-   */
+  /** Keeps the CPU busy for the given appoximate duration.
+    */
   def busy(duration: FiniteDuration): Unit =
     pi(System.nanoTime() + duration.toNanos)
 
-  /**
-   * Calculate pi until System.nanoTime is later than `endNanos`
-   */
+  /** Calculate pi until System.nanoTime is later than `endNanos`
+    */
   private def pi(endNanos: Long) = {
     def gregoryLeibnitz(n: Long) = 4.0 * (1 - (n % 2) * 2) / (n * 2 + 1)
     var n = 0

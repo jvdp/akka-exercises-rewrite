@@ -19,7 +19,8 @@ object SavedStates extends AutoPlugin {
   private val bookmarkFile = new File(".bookmark")
   private val savedStatesDir = new File(".savedStates/")
 
-  private val stateParser: Parser[String] = Space ~> StringBasic.examples(FixedSetExamples(statesList))
+  private val stateParser: Parser[String] =
+    Space ~> StringBasic.examples(FixedSetExamples(statesList))
 
   private val saveStateHelp = Help(
     "saveState",
@@ -27,12 +28,11 @@ object SavedStates extends AutoPlugin {
     "Save the current state of your exercise."
   )
 
-  private val saveStateCommand = Command.command("saveState", saveStateHelp) {
-    state =>
-      val exercise = currentExercise()
-      saveState(exercise)
-      println(s"Saved state for $exercise")
-      state
+  private val saveStateCommand = Command.command("saveState", saveStateHelp) { state =>
+    val exercise = currentExercise()
+    saveState(exercise)
+    println(s"Saved state for $exercise")
+    state
   }
 
   private val restoreStateHelp = Help(
@@ -41,12 +41,12 @@ object SavedStates extends AutoPlugin {
     "Restore a previously saved exercise state."
   )
 
-  private val restoreStateCommand = Command("restoreState", restoreStateHelp) (state => stateParser) {
-    case (state, exercise) =>
+  private val restoreStateCommand =
+    Command("restoreState", restoreStateHelp)(state => stateParser) { case (state, exercise) =>
       restoreState(exercise)
       println(s"Restored state for $exercise")
       state
-  }
+    }
 
   private val listStatesHelp = Help(
     "savedStates",
@@ -54,13 +54,12 @@ object SavedStates extends AutoPlugin {
     "List all saved states."
   )
 
-  private val listStatesCommand = Command.command("savedStates", listStatesHelp) {
-    state =>
-      println(statesList.mkString("\n"))
-      state
+  private val listStatesCommand = Command.command("savedStates", listStatesHelp) { state =>
+    println(statesList.mkString("\n"))
+    state
   }
 
-  private def statesList = if(savedStatesDir.exists()) {
+  private def statesList = if (savedStatesDir.exists()) {
     savedStatesDir.list().sorted.toList
   } else {
     List()

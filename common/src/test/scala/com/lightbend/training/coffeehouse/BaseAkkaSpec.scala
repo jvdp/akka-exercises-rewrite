@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training.coffeehouse
 
@@ -20,8 +19,8 @@ abstract class BaseAkkaSpec extends BaseSpec with BeforeAndAfterAll {
         var actor = null: ActorRef
         probe.awaitAssert {
           (probe.system actorSelection path).tell(Identify(path), probe.ref)
-          probe.expectMsgPF(100 milliseconds) {
-            case ActorIdentity(`path`, Some(ref)) => actor = ref
+          probe.expectMsgPF(100 milliseconds) { case ActorIdentity(`path`, Some(ref)) =>
+            actor = ref
           }
         }
         actor

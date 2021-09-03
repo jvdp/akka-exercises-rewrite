@@ -1,18 +1,17 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training.coffeehouse
 
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.{ActorRef, ActorSystem}
 import akka.event.Logging
 import akka.pattern.ask
 import akka.util.Timeout
 import scala.annotation.tailrec
 import scala.concurrent.Await
-import scala.concurrent.duration.{ Duration, MILLISECONDS => Millis }
+import scala.concurrent.duration.{Duration, MILLISECONDS => Millis}
 import scala.io.StdIn
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 object CoffeeHouseApp {
 
@@ -23,7 +22,8 @@ object CoffeeHouseApp {
     applySystemProperties(opts)
     val name = opts.getOrElse("name", "coffee-house")
     val system = ActorSystem(s"$name-system")
-    val statusTimeout = Duration(system.settings.config.getDuration("coffee-house.status-timeout", Millis), Millis)
+    val statusTimeout =
+      Duration(system.settings.config.getDuration("coffee-house.status-timeout", Millis), Millis)
     val coffeeHouseApp = new CoffeeHouseApp(system)(statusTimeout)
     coffeeHouseApp.run()
   }
@@ -44,10 +44,13 @@ class CoffeeHouseApp(system: ActorSystem)(implicit statusTimeout: Timeout) exten
   private val coffeeHouse = createCoffeeHouse()
 
   def run(): Unit = {
-    log.warning(f"{} running%nEnter "
-      + Console.BLUE + "commands" + Console.RESET
-      + " into the terminal: "
-      + Console.BLUE + "[e.g. `q` or `quit`]" + Console.RESET, getClass.getSimpleName)
+    log.warning(
+      f"{} running%nEnter "
+        + Console.BLUE + "commands" + Console.RESET
+        + " into the terminal: "
+        + Console.BLUE + "[e.g. `q` or `quit`]" + Console.RESET,
+      getClass.getSimpleName
+    )
     commandLoop()
     Await.ready(system.whenTerminated, Duration.Inf)
   }
@@ -61,7 +64,7 @@ class CoffeeHouseApp(system: ActorSystem)(implicit statusTimeout: Timeout) exten
   private def commandLoop(): Unit = {
     val commandString = StdIn.readLine()
 
-    if(commandString == null) {
+    if (commandString == null) {
       system.terminate()
     } else {
       Command(commandString) match {

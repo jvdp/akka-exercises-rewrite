@@ -1,12 +1,19 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training.coffeehouse
 
-import akka.actor.{ Actor, ActorLogging, ActorRef, OneForOneStrategy, Props, SupervisorStrategy, Terminated }
+import akka.actor.{
+  Actor,
+  ActorLogging,
+  ActorRef,
+  OneForOneStrategy,
+  Props,
+  SupervisorStrategy,
+  Terminated
+}
 import akka.routing.FromConfig
-import scala.concurrent.duration.{ Duration, MILLISECONDS => Millis }
+import scala.concurrent.duration.{Duration, MILLISECONDS => Millis}
 
 object CoffeeHouse {
 
@@ -34,12 +41,22 @@ class CoffeeHouse(caffeineLimit: Int) extends Actor with ActorLogging {
     OneForOneStrategy()(decider orElse super.supervisorStrategy.decider)
   }
 
-  private val baristaAccuracy = context.system.settings.config getInt "coffee-house.barista.accuracy"
+  private val baristaAccuracy =
+    context.system.settings.config getInt "coffee-house.barista.accuracy"
   private val baristaPrepareCoffeeDuration =
-    Duration(context.system.settings.config.getDuration("coffee-house.barista.prepare-coffee-duration", Millis), Millis)
+    Duration(
+      context.system.settings.config
+        .getDuration("coffee-house.barista.prepare-coffee-duration", Millis),
+      Millis
+    )
   private val guestFinishCoffeeDuration =
-    Duration(context.system.settings.config.getDuration("coffee-house.guest.finish-coffee-duration", Millis), Millis)
-  private val waiterMaxComplaintCount = context.system.settings.config getInt "coffee-house.waiter.max-complaint-count"
+    Duration(
+      context.system.settings.config
+        .getDuration("coffee-house.guest.finish-coffee-duration", Millis),
+      Millis
+    )
+  private val waiterMaxComplaintCount =
+    context.system.settings.config getInt "coffee-house.waiter.max-complaint-count"
 
   private val barista = createBarista()
   private val waiter = createWaiter()
@@ -69,7 +86,10 @@ class CoffeeHouse(caffeineLimit: Int) extends Actor with ActorLogging {
   }
 
   protected def createBarista(): ActorRef =
-    context.actorOf(FromConfig.props(Barista.props(baristaPrepareCoffeeDuration, baristaAccuracy)), "barista")
+    context.actorOf(
+      FromConfig.props(Barista.props(baristaPrepareCoffeeDuration, baristaAccuracy)),
+      "barista"
+    )
 
   protected def createWaiter(): ActorRef =
     context.actorOf(Waiter.props(self, barista, waiterMaxComplaintCount), "waiter")

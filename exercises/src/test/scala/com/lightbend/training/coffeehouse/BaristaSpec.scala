@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 package com.lightbend.training.coffeehouse
 
@@ -29,8 +28,8 @@ class BaristaSpec extends BaseAkkaSpec {
       for (_ <- 1 to runs) {
         implicit val ref = waiter.ref
         barista ! Barista.PrepareCoffee(Coffee.Akkaccino, guest)
-        coffees +:= waiter.expectMsgPF() {
-          case Barista.CoffeePrepared(coffee, `guest`) => coffee
+        coffees +:= waiter.expectMsgPF() { case Barista.CoffeePrepared(coffee, `guest`) =>
+          coffee
         }
       }
       val expectedCount = runs * accuracy / 100

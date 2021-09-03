@@ -9,8 +9,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object Guest {
 
-  case object CaffeineException
-      extends IllegalStateException("Too much caffeine!")
+  case object CaffeineException extends IllegalStateException("Too much caffeine!")
   case object CoffeeFinished
 
   def props(

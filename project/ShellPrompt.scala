@@ -1,6 +1,5 @@
-/**
- * Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
- */
+/** Copyright © 2014 - 2020 Lightbend, Inc. All rights reserved. [http://www.lightbend.com]
+  */
 
 import sbt.Keys.{name, shellPrompt}
 import sbt._
@@ -13,17 +12,19 @@ object ShellPrompt extends AutoPlugin {
   override lazy val projectSettings =
     Seq(
       shellPrompt := { state =>
-        val exerciseName = if(bookmarkFile.exists())
-          Console.BLUE + IO.readLines(bookmarkFile).head + Console.RESET
-        else
-          Console.BLUE + name.value + Console.RESET
+        val exerciseName =
+          if (bookmarkFile.exists())
+            Console.BLUE + IO.readLines(bookmarkFile).head + Console.RESET
+          else
+            Console.BLUE + name.value + Console.RESET
 
         val man = Console.RED + "man [e]" + Console.RESET
 
-        val courseName = if(courseNameFile.exists())
-          IO.readLines(courseNameFile).head
-        else
-          "project"
+        val courseName =
+          if (courseNameFile.exists())
+            IO.readLines(courseNameFile).head
+          else
+            "project"
 
         s"$man > $courseName > $exerciseName > "
       }
