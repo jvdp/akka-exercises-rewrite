@@ -19,6 +19,9 @@ import akka.stream.scaladsl.Merge
 import akka.stream.scaladsl.Broadcast
 import akka.stream.ActorAttributes
 import akka.stream.Supervision
+import akka.actor.ActorSystem
+import akka.stream.OverflowStrategy
+import akka.stream.scaladsl.Keep
 
 object CoffeeHouse {
 
@@ -127,13 +130,13 @@ object CoffeeHouse {
 
         val createGuest = builder.add(Flow[CreateGuest])
         val guestsIn =
-          builder.add(Merge[Either[CreateGuest, (GuestId, Either[PleaseLeave, Waiter.CoffeeServed])]](2))
+          builder.add(Merge[Either[CreateGuest, (GuestId, Either[PleaseLeave, Waiter.CoffeeServed])]](3))
         val guestsOut =
           builder.add(Broadcast[(Status, Option[(GuestId, Guest.Response)])](2))
         val waiterIn = builder.add(Merge[Waiter.Request[GuestId]](2))
         val baristaIn = builder.add(Merge[Barista.PrepareCoffee[GuestId]](2))
         val waiterOut = builder.add(Broadcast[Waiter.Response[GuestId]](3))
-        val guestBookOut = builder.add(Broadcast[Either[(Int, PleaseLeave), Barista.PrepareCoffee[Int]]](3))
+        val guestBookOut = builder.add(Broadcast[Either[(Int, PleaseLeave), Barista.PrepareCoffee[Int]]](2))
 
         createGuest.map(Left(_)) ~> guestsIn
         guestsIn ~> builder.add(guests) ~> guestsOut
@@ -155,9 +158,25 @@ object CoffeeHouse {
         guestBookOut.collect { case Left(guestId -> pleaseLeave) => Right(guestId -> Left(pleaseLeave)) } ~> guestsIn
         guestBookOut.collect { case Right(prepareCoffee) => prepareCoffee } ~> baristaIn
 
-        FlowShape(createGuest.in, guestsOut.out(2).map(_._1).outlet)
+        FlowShape(createGuest.in, guestsOut.out(1).map(_._1).outlet)
       })
     }
+
+  def flowActor(coffeeHouseFlow: Flow[CreateGuest, Status, _])(implicit system: ActorSystem): ActorRef =
+    system.actorOf(Props(new Actor {
+      var status = Status(0)
+      val queue = Source
+        .queue[CreateGuest](10)
+        .via(coffeeHouseFlow)
+        .to(Sink.foreach { status = _ })
+        .run()
+
+      def receive: Receive = {
+        case createGuest: CreateGuest => queue.offer(createGuest)
+        case GetStatus                => sender() ! status
+      }
+
+    }))
 
 }
 

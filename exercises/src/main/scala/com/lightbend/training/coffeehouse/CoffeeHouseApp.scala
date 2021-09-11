@@ -57,7 +57,8 @@ class CoffeeHouseApp(system: ActorSystem)(implicit statusTimeout: Timeout) exten
 
   protected def createCoffeeHouse(): ActorRef = {
     val caffeineLimit = system.settings.config.getInt("coffee-house.caffeine-limit")
-    system.actorOf(CoffeeHouse.props(caffeineLimit), "coffee-house")
+    // system.actorOf(CoffeeHouse.props(caffeineLimit), "coffee-house")
+    CoffeeHouse.flowActor(CoffeeHouse.flow(caffeineLimit))(system)
   }
 
   @tailrec
