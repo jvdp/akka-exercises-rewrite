@@ -6,6 +6,7 @@ package com.lightbend.training.coffeehouse
 import akka.testkit.{EventFilter, TestProbe}
 import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.Sink
+import akka.actor.ActorRef
 
 class WaiterSpec extends BaseAkkaSpec {
 
@@ -33,7 +34,7 @@ class WaiterSpec extends BaseAkkaSpec {
 
     "result in a FrustratedException if maxComplaintCount exceeded" in {
       val waiter = Waiter.flowActor(system.deadLetters, system.deadLetters, Waiter.flow(0))
-      EventFilter[Waiter.FrustratedException](occurrences = 1) intercept {
+      EventFilter[Waiter.FrustratedException[ActorRef]](occurrences = 1) intercept {
         waiter ! Waiter.Complaint(Coffee.Akkaccino)
       }
     }
@@ -75,7 +76,7 @@ class WaiterSpec extends BaseAkkaSpec {
         .via(Waiter.flow(0))
         .runWith(Sink.seq)
         .failed
-        .futureValue should be(a[Waiter.FrustratedException])
+        .futureValue should be(a[Waiter.FrustratedException[_]])
     }
   }
 }

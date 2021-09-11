@@ -88,7 +88,7 @@ class GuestSpec extends BaseAkkaSpec {
     }
 
     "result in sending ServeCoffee to Waiter after finishCoffeeDuration" in {
-      Source(Seq(Coffee.Akkaccino))
+      Source(Seq(Waiter.CoffeeServed(Coffee.Akkaccino)))
         .via(Guest.flow(Coffee.Akkaccino, 100 milliseconds, 2))
         .runWith(Sink.seq)
         .futureValue shouldEqual
@@ -99,7 +99,7 @@ class GuestSpec extends BaseAkkaSpec {
     }
 
     "result in sending Complaint to Waiter for a wrong coffee" in {
-      Source(Seq(Coffee.MochaPlay))
+      Source(Seq(Waiter.CoffeeServed(Coffee.MochaPlay)))
         .via(Guest.flow(Coffee.Akkaccino, 100 milliseconds, 2))
         .runWith(Sink.seq)
         .futureValue shouldEqual
@@ -110,7 +110,7 @@ class GuestSpec extends BaseAkkaSpec {
     }
 
     "result in a CaffeineException if caffeineLimit exceeded" in {
-      Source(Seq(Coffee.Akkaccino, Coffee.Akkaccino))
+      Source(Seq(Waiter.CoffeeServed(Coffee.Akkaccino), Waiter.CoffeeServed(Coffee.Akkaccino)))
         .via(Guest.flow(Coffee.Akkaccino, 100 milliseconds, 2))
         .runWith(Sink.seq)
         .failed

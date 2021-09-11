@@ -36,12 +36,12 @@ object Guest {
       favoriteCoffee: Coffee,
       finishCoffeeDuration: FiniteDuration,
       caffeineLimit: Int
-  ): Flow[Coffee, Response, NotUsed] =
-    Flow[Coffee]
+  ): Flow[Waiter.CoffeeServed, Response, NotUsed] =
+    Flow[Waiter.CoffeeServed]
       .scan((0, Option.empty[Response])) {
-        case ((coffeeCount, _), `favoriteCoffee`) =>
+        case ((coffeeCount, _), Waiter.CoffeeServed(`favoriteCoffee`)) =>
           coffeeCount + 1 -> Some(Right(Waiter.ServeCoffee(favoriteCoffee)))
-        case ((coffeeCount, _), coffee) =>
+        case ((coffeeCount, _), Waiter.CoffeeServed(coffee)) =>
           coffeeCount -> Some(Left(Waiter.Complaint(favoriteCoffee)))
       }
       .collect {
@@ -58,16 +58,15 @@ object Guest {
 
   def flowActor(
       waiter: ActorRef,
-      guestFlow: Flow[Coffee, Response, NotUsed]
+      guestFlow: Flow[Waiter.CoffeeServed, Response, NotUsed]
   )(implicit system: ActorSystem): ActorRef = {
     Source
-      .actorRef[Any](
+      .actorRef[Waiter.CoffeeServed](
         completionMatcher = PartialFunction.empty,
         failureMatcher = PartialFunction.empty,
         bufferSize = 0,
         overflowStrategy = OverflowStrategy.fail
       )
-      .map { case Waiter.CoffeeServed(coffee) => coffee }
       .via(guestFlow)
       .to(Sink.foreach[Response] {
         case Left(complaint) => waiter ! complaint

@@ -21,28 +21,28 @@ object Waiter {
   case class ServeCoffee(coffee: Coffee)
   case class CoffeeServed(coffee: Coffee)
   case class Complaint(coffee: Coffee)
-  case class FrustratedException(coffee: Coffee, guest: ActorRef) extends IllegalStateException("Too many complaints!")
+  case class FrustratedException[K](coffee: Coffee, guest: K) extends IllegalStateException("Too many complaints!")
 
   def props(coffeeHouse: ActorRef, barista: ActorRef, maxComplaintCount: Int): Props =
     Props(new Waiter(coffeeHouse, barista, maxComplaintCount))
 
-  type Request = Either[ServeCoffee, Either[Barista.CoffeePrepared, Complaint]]
-  type Response = Either[CoffeeHouse.ApproveCoffee, Either[(ActorRef, CoffeeServed), Barista.PrepareCoffee]]
+  type Request[K] = (K, Either[ServeCoffee, Either[Barista.CoffeePrepared[K], Complaint]])
+  type Response[K] = Either[CoffeeHouse.ApproveCoffee[K], Either[(K, CoffeeServed), Barista.PrepareCoffee[K]]]
 
-  def flow(maxComplaintCount: Int): Flow[(ActorRef, Request), Response, NotUsed] =
-    Flow[(ActorRef, Request)]
-      .scan((0, Option.empty[Response])) {
-        case (complaintCount -> _, sender -> Left(ServeCoffee(coffee))) =>
-          complaintCount -> Some(Left(CoffeeHouse.ApproveCoffee(coffee, sender)))
+  def flow[K](maxComplaintCount: Int): Flow[Request[K], Response[K], NotUsed] =
+    Flow[Request[K]]
+      .scan((0, Option.empty[Response[K]])) {
+        case (complaintCount -> _, guest -> Left(ServeCoffee(coffee))) =>
+          complaintCount -> Some(Left(CoffeeHouse.ApproveCoffee(coffee, guest)))
 
         case (complaintCount -> _, _ -> Right(Left((Barista.CoffeePrepared(coffee, guest))))) =>
           complaintCount -> Some(Right(Left(guest -> CoffeeServed(coffee))))
 
-        case (`maxComplaintCount` -> _, sender -> Right(Right(Complaint(coffee)))) =>
-          throw FrustratedException(coffee, sender)
+        case (`maxComplaintCount` -> _, guest -> Right(Right(Complaint(coffee)))) =>
+          throw FrustratedException(coffee, guest)
 
-        case (complaintCount -> _, sender -> Right(Right(Complaint(coffee)))) =>
-          complaintCount + 1 -> Some(Right(Right(Barista.PrepareCoffee(coffee, sender))))
+        case (complaintCount -> _, guest -> Right(Right(Complaint(coffee)))) =>
+          complaintCount + 1 -> Some(Right(Right(Barista.PrepareCoffee(coffee, guest))))
 
       }
       .collect { case (_, Some(response)) => response }
@@ -50,7 +50,7 @@ object Waiter {
   def flowActor(
       coffeeHouse: ActorRef,
       barista: ActorRef,
-      waiterFlow: Flow[(ActorRef, Request), Response, NotUsed]
+      waiterFlow: Flow[Request[ActorRef], Response[ActorRef], NotUsed]
   )(implicit system: ActorSystem): ActorRef =
     system.actorOf(Props(new Actor {
       val (ref, fut) = Source
@@ -60,10 +60,13 @@ object Waiter {
           bufferSize = 0,
           overflowStrategy = OverflowStrategy.fail
         )
-        .map {
-          case (sender: ActorRef, serveCoffee: ServeCoffee)               => sender -> Left(serveCoffee)
-          case (sender: ActorRef, coffeePrepared: Barista.CoffeePrepared) => sender -> Right(Left(coffeePrepared))
-          case (sender: ActorRef, complaint: Complaint)                   => sender -> Right(Right(complaint))
+        .map[Request[ActorRef]] {
+          case (sender: ActorRef, serveCoffee: ServeCoffee) =>
+            sender -> Left(serveCoffee)
+          case (sender: ActorRef, Barista.CoffeePrepared(coffee, guest: ActorRef)) =>
+            sender -> Right(Left(Barista.CoffeePrepared(coffee, guest)))
+          case (sender: ActorRef, complaint: Complaint) =>
+            sender -> Right(Right(complaint))
         }
         .via(waiterFlow)
         .toMat(Sink.foreach {
@@ -91,7 +94,7 @@ class Waiter(coffeeHouse: ActorRef, barista: ActorRef, maxComplaintCount: Int) e
   override def receive: Receive = {
     case ServeCoffee(coffee) =>
       coffeeHouse ! CoffeeHouse.ApproveCoffee(coffee, sender())
-    case Barista.CoffeePrepared(coffee, guest) =>
+    case Barista.CoffeePrepared(coffee, guest: ActorRef) =>
       guest ! CoffeeServed(coffee)
     case Complaint(coffee) if complaintCount == maxComplaintCount =>
       throw FrustratedException(coffee, sender())

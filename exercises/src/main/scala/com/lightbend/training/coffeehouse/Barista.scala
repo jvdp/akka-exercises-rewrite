@@ -18,33 +18,33 @@ import akka.stream.scaladsl.Sink
 
 object Barista {
 
-  case class PrepareCoffee(coffee: Coffee, guest: ActorRef)
-  case class CoffeePrepared(coffee: Coffee, guest: ActorRef)
+  case class PrepareCoffee[K](coffee: Coffee, guest: K)
+  case class CoffeePrepared[K](coffee: Coffee, guest: K)
 
   def props(prepareCoffeeDuration: FiniteDuration, accuracy: Int): Props =
     Props(new Barista(prepareCoffeeDuration, accuracy))
 
   // *** streams ***
 
-  def flow[K](
+  def flow[T, K](
       prepareCoffeeDuration: FiniteDuration,
       accuracy: Int
-  ): Flow[(K, PrepareCoffee), (K, CoffeePrepared), NotUsed] =
-    Flow[(K, PrepareCoffee)]
-      .map { case (key, PrepareCoffee(requested, guest)) =>
+  ): Flow[(T, PrepareCoffee[K]), (T, CoffeePrepared[K]), NotUsed] =
+    Flow[(T, PrepareCoffee[K])]
+      .map { case (waiter, PrepareCoffee(requested, guest)) =>
         val coffee = if (Random.nextInt(100) < accuracy) requested else Coffee.anyOther(requested)
-        key -> CoffeePrepared(coffee, guest)
+        waiter -> CoffeePrepared(coffee, guest)
       }
       .delay(prepareCoffeeDuration)
 
   // *** compat ***
 
   def flowActor(
-      baristaFlow: Flow[(ActorRef, PrepareCoffee), (ActorRef, CoffeePrepared), NotUsed]
+      baristaFlow: Flow[(ActorRef, PrepareCoffee[ActorRef]), (ActorRef, CoffeePrepared[ActorRef]), NotUsed]
   )(implicit system: ActorSystem): ActorRef =
     system.actorOf(Props(new Actor {
       val ref = Source
-        .actorRef[(ActorRef, PrepareCoffee)](
+        .actorRef[(ActorRef, PrepareCoffee[ActorRef])](
           completionMatcher = PartialFunction.empty,
           failureMatcher = PartialFunction.empty,
           bufferSize = 0,
@@ -76,8 +76,8 @@ class Barista(prepareCoffeeDuration: FiniteDuration, accuracy: Int) extends Acto
   }
 
   private def busy(waiter: ActorRef): Receive = {
-    case coffeePrepared: CoffeePrepared =>
-      waiter ! coffeePrepared
+    case CoffeePrepared(coffee, guest: ActorRef) =>
+      waiter ! CoffeePrepared(coffee, guest)
       unstashAll()
       context.become(ready)
     case _ =>
