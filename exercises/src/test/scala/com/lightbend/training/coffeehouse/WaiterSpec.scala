@@ -46,7 +46,7 @@ class WaiterSpec extends BaseAkkaSpec {
       val ref = TestProbe().ref
 
       Source
-        .single(ref -> Left(Waiter.ServeCoffee(Coffee.Akkaccino)))
+        .single(Right(ref -> Right(Waiter.ServeCoffee(Coffee.Akkaccino))))
         .via(Waiter.flow(Int.MaxValue))
         .runWith(Sink.seq)
         .futureValue shouldEqual
@@ -59,7 +59,7 @@ class WaiterSpec extends BaseAkkaSpec {
       val ref = TestProbe().ref
 
       Source
-        .single(ref -> Right(Right(Waiter.Complaint(Coffee.Akkaccino))))
+        .single(Right(ref -> Left(Waiter.Complaint(Coffee.Akkaccino))))
         .via(Waiter.flow(1))
         .runWith(Sink.seq)
         .futureValue shouldEqual
@@ -72,7 +72,7 @@ class WaiterSpec extends BaseAkkaSpec {
       val ref = TestProbe().ref
 
       Source
-        .single(ref -> Right(Right(Waiter.Complaint(Coffee.Akkaccino))))
+        .single(Right(ref -> Left(Waiter.Complaint(Coffee.Akkaccino))))
         .via(Waiter.flow(0))
         .runWith(Sink.seq)
         .failed

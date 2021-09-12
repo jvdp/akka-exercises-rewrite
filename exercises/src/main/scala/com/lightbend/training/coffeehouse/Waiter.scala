@@ -26,22 +26,22 @@ object Waiter {
   def props(coffeeHouse: ActorRef, barista: ActorRef, maxComplaintCount: Int): Props =
     Props(new Waiter(coffeeHouse, barista, maxComplaintCount))
 
-  type Request[K] = (K, Either[ServeCoffee, Either[Barista.CoffeePrepared[K], Complaint]])
-  type Response[K] = Either[CoffeeHouse.ApproveCoffee[K], Either[(K, CoffeeServed), Barista.PrepareCoffee[K]]]
+  type Request[K] = Either[Barista.CoffeePrepared[K], (K, Either[Complaint, ServeCoffee])]
+  type Response[K] = Either[(K, CoffeeServed), Either[CoffeeHouse.ApproveCoffee[K], Barista.PrepareCoffee[K]]]
 
   def flow[K](maxComplaintCount: Int): Flow[Request[K], Response[K], NotUsed] =
     Flow[Request[K]]
       .scan((0, Option.empty[Response[K]])) {
-        case (complaintCount -> _, guest -> Left(ServeCoffee(coffee))) =>
-          complaintCount -> Some(Left(CoffeeHouse.ApproveCoffee(coffee, guest)))
+        case (complaintCount -> _, Left((Barista.CoffeePrepared(coffee, guest)))) =>
+          complaintCount -> Some(Left(guest -> CoffeeServed(coffee)))
 
-        case (complaintCount -> _, _ -> Right(Left((Barista.CoffeePrepared(coffee, guest))))) =>
-          complaintCount -> Some(Right(Left(guest -> CoffeeServed(coffee))))
+        case (complaintCount -> _, Right(guest -> Right((ServeCoffee(coffee))))) =>
+          complaintCount -> Some(Right(Left(CoffeeHouse.ApproveCoffee(coffee, guest))))
 
-        case (`maxComplaintCount` -> _, guest -> Right(Right(Complaint(coffee)))) =>
+        case (`maxComplaintCount` -> _, Right(guest -> Left(Complaint(coffee)))) =>
           throw FrustratedException(coffee, guest)
 
-        case (complaintCount -> _, guest -> Right(Right(Complaint(coffee)))) =>
+        case (complaintCount -> _, Right(guest -> Left(Complaint(coffee)))) =>
           complaintCount + 1 -> Some(Right(Right(Barista.PrepareCoffee(coffee, guest))))
 
       }
@@ -61,18 +61,18 @@ object Waiter {
           overflowStrategy = OverflowStrategy.fail
         )
         .map[Request[ActorRef]] {
-          case (sender: ActorRef, serveCoffee: ServeCoffee) =>
-            sender -> Left(serveCoffee)
           case (sender: ActorRef, Barista.CoffeePrepared(coffee, guest: ActorRef)) =>
-            sender -> Right(Left(Barista.CoffeePrepared(coffee, guest)))
+            Left(Barista.CoffeePrepared(coffee, guest))
+          case (sender: ActorRef, serveCoffee: ServeCoffee) =>
+            Right(sender -> Right(serveCoffee))
           case (sender: ActorRef, complaint: Complaint) =>
-            sender -> Right(Right(complaint))
+            Right(sender -> Left(complaint))
         }
         .via(waiterFlow)
         .toMat(Sink.foreach {
-          case Left(approveCoffee)                => coffeeHouse ! approveCoffee
-          case Right(Left(guest -> coffeeServed)) => guest ! coffeeServed
-          case Right(Right(prepareCoffee))        => barista ! prepareCoffee
+          case Left(guest -> coffeeServed) => guest ! coffeeServed
+          case Right(Left(approveCoffee))  => coffeeHouse ! approveCoffee
+          case Right(Right(prepareCoffee)) => barista ! prepareCoffee
         })(Keep.both)
         .run()
 
